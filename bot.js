@@ -17,7 +17,6 @@
       this.gameCount_ = {};
 
       this.client_.on('ready', () => {
-        console.log(`Logged in as ${this.client_.user.tag}!`);
         this.ping_ = '<@' + this.client_.user.id + '>';
         this.client_.on('message', this.onMessage.bind(this));
         this.client_.on('presenceUpdate', this.onPresenceUpdate.bind(this));

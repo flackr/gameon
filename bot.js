@@ -3,6 +3,10 @@
   const Levenshtein = require('./levenshtein.js');
   const MAX_DISTANCE = 4;
 
+  const COMMANDS_LIST = '**Commands:**\n' +
+      '`subscribe <game>`: Be notified when someone starts playing `game`\n' +
+      '`unsubscribe <game>`: Remove your subscription for `game`';
+
   class Bot {
     constructor(configuration, hooks) {
       // Configuration map:
@@ -40,6 +44,12 @@
     onMessage(msg) {
       if (msg.content.startsWith(this.ping_)) {
         let command = msg.content.substring(this.ping_.length).trim();
+        if (command == 'help') {
+          // Deliberately avoid 'reply' here as it creates an ugly large highlight block.
+          msg.channel.send(COMMANDS_LIST);
+          return;
+        }
+
         let separator = command.indexOf(' ');
         if (separator == -1)
           return;

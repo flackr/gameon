@@ -29,13 +29,13 @@ client.on('message', msg => {
     if (command.substring(0, separator) == 'subscribe') {
       let game = command.substring(separator + 1);
       configuration.guilds[msg.guild.id] = configuration.guilds[msg.guild.id] || {"games": {}};
-      configuration.guilds[msg.guild.id].games[game] = configuration.guilds[msg.guild.id].games[game] || {};
-      configuration.guilds[msg.guild.id].games[game][msg.member.user.id] = true;
+      configuration.guilds[msg.guild.id].games[game] = configuration.guilds[msg.guild.id].games[game] || {"users": {}};
+      configuration.guilds[msg.guild.id].games[game].users[msg.member.user.id] = true;
       msg.reply('Subscribed!');
       save();
     } else if (command.substring(0, separator) == 'unsubscribe') {
       let game = command.substring(separator + 1);
-      delete configuration.guilds[msg.guild.id].games[game][msg.member.user.id];
+      delete configuration.guilds[msg.guild.id].games[game].users[msg.member.user.id];
       msg.reply('Unsubscribed!');
       save();
     }
@@ -55,11 +55,14 @@ client.on('presenceUpdate', (oldMember, newMember) => {
     let guild = newMember.guild.id;
     gameCount[guild] = gameCount[guild] || {};
     gameCount[guild][game] = gameCount[guild][game] || 0;
-    if (gameCount[newMember.guild.id][game] == 0 &&
-        configuration.guilds[guild] &&
-        configuration.guilds[guild].games[game]) {
+
+    // Keep track of known games.
+    configuration.guilds[guild] = configuration.guilds[guild] || {"games": {}};
+    configuration.guilds[guild].games[game] = configuration.guilds[guild].games[game] || {"users": {}};
+    save();
+    if (gameCount[newMember.guild.id][game] == 0) {
       let messageStr = '';
-      for (let user in configuration.guilds[guild].games[game]) {
+      for (let user in configuration.guilds[guild].games[game].users) {
         if (messageStr)
           messageStr += ', ';
         messageStr += '<@' + user + '>';

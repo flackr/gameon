@@ -7,15 +7,12 @@ const client = new Discord.Client();
 let ping = undefined;
 const config_file = 'bot.json';
 
-// Map of game => count of users playing it.
-// TODO: Change this to map to count per guild, i.e. if user's in guild A are
-// playing a game but not in guild B, guild B user's still need to be notified
-// when the first user starts playing it.
+// Map of guild => game => count of users playing it.
 let gameCount = {};
 
 // Configuration map:
 // {token: '<discord-token>',
-//  subscriptions: {game => {guild: {user: true}}}}
+//  guilds: {guild: {game => {user: true}}}}
 let configuration = {};
 
 client.on('ready', () => {
@@ -31,13 +28,14 @@ client.on('message', msg => {
       return;
     if (command.substring(0, separator) == 'subscribe') {
       let game = command.substring(separator + 1);
-      configuration.subscriptions[game] = configuration.subscriptions[game] || {};
-      configuration.subscriptions[game][msg.guild.id] = configuration.subscriptions[game][msg.guild.id] || {};
-      configuration.subscriptions[game][msg.guild.id][msg.member.user.id] = true;
+      configuration.guilds[msg.guild.id] = configuration.guilds[msg.guild.id] || {"games": {}};
+      configuration.guilds[msg.guild.id].games[game] = configuration.guilds[msg.guild.id].games[game] || {};
+      configuration.guilds[msg.guild.id].games[game][msg.member.user.id] = true;
       msg.reply('Subscribed!');
       save();
     } else if (command.substring(0, separator) == 'unsubscribe') {
-      delete configuration.subscriptions[game][msg.channel.id][msg.member.user.id];
+      let game = command.substring(separator + 1);
+      delete configuration.guilds[msg.guild.id].games[game][msg.member.user.id];
       msg.reply('Unsubscribed!');
       save();
     }
@@ -47,30 +45,32 @@ client.on('message', msg => {
 client.on('presenceUpdate', (oldMember, newMember) => {
   let oldGame = oldMember.presence.game;
   let game = newMember.presence.game;
-  
-  if (oldGame && gameCount[oldGame]) {
-    gameCount[oldGame] = Math.max(gameCount[oldGame] - 1, 0);
+  if (oldGame) {
+    if (gameCount[oldMember.guild.id]) {
+      if (gameCount[oldMember.guild.id][game])
+        gameCount[oldMember.guild.id][game] = Math.max(gameCount[oldMember.guild.id][game] - 1, 0);
+    }
   }
   if (game) {
-    gameCount[game] = gameCount[game] || 0;
-    if (gameCount[game] == 0) {
-      for (let guild in configuration.subscriptions[game]) {
-        // Don't leak information across guilds.
-        if (!client.guilds.get(guild).members.get(newMember.user.id))
-          continue;
-        let messageStr = '';
-        for (let user in configuration.subscriptions[game][guild]) {
-          if (messageStr)
-            messageStr += ', ';
-          messageStr += '<@' + user + '>';
-        }
-        if (!messageStr) continue;
+    let guild = newMember.guild.id;
+    gameCount[guild] = gameCount[guild] || {};
+    gameCount[guild][game] = gameCount[guild][game] || 0;
+    if (gameCount[newMember.guild.id][game] == 0 &&
+        configuration.guilds[guild] &&
+        configuration.guilds[guild].games[game]) {
+      let messageStr = '';
+      for (let user in configuration.guilds[guild].games[game]) {
+        if (messageStr)
+          messageStr += ', ';
+        messageStr += '<@' + user + '>';
+      }
+      if (messageStr) {
         messageStr += ': people started playing ' + game;
         let defaultChannel = client.guilds.get(guild).defaultChannel;
         defaultChannel.send(messageStr);
       }
     }
-    gameCount[game]++;
+    gameCount[guild][game]++;
   }
 });
 

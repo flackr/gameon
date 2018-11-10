@@ -1,0 +1,5 @@
+# Contains secret information!
+bot.json
+
+# Dependency folders
+node_modules/

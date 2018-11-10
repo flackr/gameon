@@ -21,6 +21,9 @@ describe('bot', function() {
             'Other game': {
               'users': {}
             },
+            'FUZZY GAME': {
+              'users': {}
+            },
           },
         },
       },
@@ -71,6 +74,11 @@ describe('bot', function() {
     }
   }
 
+  const MOCK_HOOKS = {
+    'Discord': {'Client': MockDiscordClient},
+    save
+  }
+
   function send(guild, from, message) {
     client.dispatch('message', {
       'content': message,
@@ -80,6 +88,19 @@ describe('bot', function() {
         client.guilds.get(guild).defaultChannel.send('<@' + from + '>' + response);
       },
     });
+  }
+
+  // Sends a subscribe message and returns game in response or false if no
+  // game was found.
+  function subscribe(guild, user, game) {
+    send(guild, user, '<@botuser> subscribe ' + game);
+    let response = getMessage();
+    assert.ok(response.content.startsWith('<@' + user + '>'));
+    let message = response.content.substring(user.length + 3);
+    const preamble = 'Subscribed to ';
+    if (!message.startsWith(preamble))
+      return false;
+    return message.substring(preamble.length, message.length - 1);
   }
 
   function getMessage() {
@@ -123,49 +144,47 @@ describe('bot', function() {
   describe('subscriptions', function() {
     it('should subscribe to known games', function() {
       let config = MockConfig();
-      Bot.create(config, {
-        'Discord': {'Client': MockDiscordClient},
-        save
-      });
+      Bot.create(config, MOCK_HOOKS);
       assert.ok(!config.guilds['guild1'].games['Sample game'].users['user2']);
-      send('guild1', 'user2', '<@botuser> subscribe Sample Game');
-      assert.ok(getMessage().content.startsWith('<@user2>'));
+      assert.equal(subscribe('guild1', 'user2', 'Sample game'), 'Sample game');
       assert.ok(config.guilds['guild1'].games['Sample game'].users['user2']);
+    });
+
+    it('should fuzzy match subscribed game', function() {
+      Bot.create(MockConfig(), MOCK_HOOKS);
+      assert.equal(subscribe('guild1', 'user2', 'FUZY GAME'), 'FUZZY GAME');
+    });
+
+    it('should match subscribed games case insensitive', function() {
+      Bot.create(MockConfig(), MOCK_HOOKS);
+      assert.equal(subscribe('guild1', 'user2', 'SAMPLE GAME'), 'Sample game');
+      assert.equal(subscribe('guild1', 'user2', 'fuzzy game'), 'FUZZY GAME');
     });
   });
 
   describe('notifications', function() {
     it('should notify subscribed users not playing', function() {
       let config = MockConfig();
-      config.guilds['guild1'].games['Sample game'].users['user2'] = true;
-      config.guilds['guild1'].games['Sample game'].users['user3'] = true;
-      Bot.create(config, {
-        'Discord': {'Client': MockDiscordClient},
-        save
-      });
+      Bot.create(config, MOCK_HOOKS);
+      subscribe('guild1', 'user2', 'Sample game');
+      subscribe('guild1', 'user3', 'Sample game');
       play('guild1', 'user3', 'Sample game');
       assert.ok(getMessage().content.startsWith('<@user2>:'));
     });
 
     it('should not notify playing user', function() {
       let config = MockConfig();
-      config.guilds['guild1'].games['Sample game'].users['user2'] = true;
-      Bot.create(config, {
-        'Discord': {'Client': MockDiscordClient},
-        save
-      });
+      Bot.create(config, MOCK_HOOKS);
+      subscribe('guild1', 'user2', 'Sample game');
       play('guild1', 'user2', 'Sample game');
       assert.equal(messages.length, 0);
     });
 
     it('should only notify on the first playing user per game', function() {
       let config = MockConfig();
-      config.guilds['guild1'].games['Sample game'].users['user2'] = true;
-      config.guilds['guild1'].games['Other game'].users['user2'] = true;
-      Bot.create(config, {
-        'Discord': {'Client': MockDiscordClient},
-        save
-      });
+      Bot.create(config, MOCK_HOOKS);
+      subscribe('guild1', 'user2', 'Sample game');
+      subscribe('guild1', 'user2', 'Other game');
       // user3 starting to play should notify
       play('guild1', 'user3', 'Sample game');
       assert.ok(getMessage().content.startsWith('<@user2>:'));

@@ -1,11 +1,15 @@
 {
   "name": "gameon",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A discord bot for notifying about users playing games",
-  "main": "bot.js",
+  "main": "run.js",
   "repository": "",
   "author": "Robert Flack <flackr@gmail.com>",
   "dependencies": {
-    "discord.js": "~11.4.2"
+    "discord.js": "~11.4.2",
+    "mocha": "~5.2.0"
+  },
+  "scripts": {
+    "test": "mocha"
   }
 }

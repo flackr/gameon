@@ -10,12 +10,25 @@ function save(configuration) {
       console.error('Error saving configuration');
   });
 };
+
+function validateConfig(configuration) {
+  if (!configuration.token) {
+    console.error('Error: configuration file missing token.');
+    return null;
+  }
+  configuration.guilds = configuration.guilds || {};
+  return configuration;
+};
+
 fs.readFile(CONFIG_FILE, (err, data) => {
   if (err) {
     console.log('Error: No configuration file.');
     console.log('Write one with at least {"token": "your-token"}');
   } else {
-    let configuration = JSON.parse(data);
+    let configuration = validateConfig(JSON.parse(data));
+    if (!configuration)
+      return;
+
     console.log('Configuration loaded');
     // Rewrite the config file to pretty-print handcoded config.
     save(configuration);

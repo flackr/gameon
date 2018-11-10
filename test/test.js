@@ -118,7 +118,9 @@ describe('bot', function() {
         save
       });
     });
+  });
 
+  describe('subscriptions', function() {
     it('should subscribe to known games', function() {
       let config = MockConfig();
       Bot.create(config, {
@@ -130,7 +132,9 @@ describe('bot', function() {
       assert.ok(getMessage().content.startsWith('<@user2>'));
       assert.ok(config.guilds['guild1'].games['Sample game'].users['user2']);
     });
+  });
 
+  describe('notifications', function() {
     it('should notify subscribed users not playing', function() {
       let config = MockConfig();
       config.guilds['guild1'].games['Sample game'].users['user2'] = true;

@@ -13,7 +13,7 @@ describe('bot', function() {
     return {
       token: 'my-discord-token',
       guilds: {
-        '1': {
+        'guild1': {
           'games': {
             'Sample game': {
               'users': {}
@@ -26,10 +26,10 @@ describe('bot', function() {
 
   let messages = [];
   let mock_guilds = {
-    '1': {
+    'guild1': {
       'defaultChannel': {
         'send': function(msg) {
-          messages.push({'guild': '1', 'content': msg});
+          messages.push({'guild': 'guild1', 'content': msg});
         },
       },
     },
@@ -48,7 +48,7 @@ describe('bot', function() {
     }
 
     login(token) {
-      this.user = {id: '1', tag: 'mockbot#1'};
+      this.user = {id: 'botuser', tag: 'mockbot#1'};
       this.dispatch('ready');
       if (onlogin)
         onlogin(token);
@@ -92,6 +92,16 @@ describe('bot', function() {
     return result;
   }
 
+  function play(guild, user, game, oldGame) {
+    client.dispatch('presenceUpdate',
+        {'guild': {'id': guild},
+         'user': {'id': user},
+         'presence': {'game': oldGame}},
+        {'guild': {'id': guild},
+         'user': {'id': user},
+         'presence': {'game': game}});
+  }
+
   describe('create()', function() {
     it('should connect to discord', function(done) {
       let config = {token: 'foobar'};
@@ -112,24 +122,33 @@ describe('bot', function() {
         'Discord': {'Client': MockDiscordClient},
         save
       });
-      send('1', '2', '<@1> subscribe Sample Game');
-      assert.equal(getMessage().content.substring(0, 4), '<@2>');
-      assert.equal(config.guilds['1'].games['Sample game'].users['2'], true);
+      assert.ok(!config.guilds['guild1'].games['Sample game'].users['user2']);
+      send('guild1', 'user2', '<@botuser> subscribe Sample Game');
+      assert.ok(getMessage().content.startsWith('<@user2>'));
+      assert.ok(config.guilds['guild1'].games['Sample game'].users['user2']);
     });
 
-    it('should notify subscribed users', function() {
+    it('should notify subscribed users not playing', function() {
       let config = MockConfig();
-      config.guilds['1'].games['Sample game'].users['2'] = true;
+      config.guilds['guild1'].games['Sample game'].users['user2'] = true;
+      config.guilds['guild1'].games['Sample game'].users['user3'] = true;
       Bot.create(config, {
         'Discord': {'Client': MockDiscordClient},
         save
       });
-      let guild = {id: '1'};
-      let user = {id: '3'};
-      client.dispatch('presenceUpdate',
-          {guild, user, 'presence': {'game': null}},
-          {guild, user, 'presence': {'game': 'Sample game'}});
-      assert.equal(getMessage().content.substring(0, 4), '<@2>');
+      play('guild1', 'user3', 'Sample game');
+      assert.ok(getMessage().content.startsWith('<@user2>:'));
+    });
+
+    it('should not notify playing user', function() {
+      let config = MockConfig();
+      config.guilds['guild1'].games['Sample game'].users['user2'] = true;
+      Bot.create(config, {
+        'Discord': {'Client': MockDiscordClient},
+        save
+      });
+      play('guild1', 'user2', 'Sample game');
+      assert.equal(messages.length, 0);
     });
   });
 });

@@ -24,13 +24,12 @@ describe('bot', function() {
     };
   }
 
-  let messages = {};
+  let messages = [];
   let mock_guilds = {
     '1': {
       'defaultChannel': {
         'send': function(msg) {
-          messages['1'] = messages['1'] || [];
-          messages['1'].push(msg);
+          messages.push({'guild': '1', 'content': msg});
         },
       },
     },
@@ -69,6 +68,30 @@ describe('bot', function() {
     }
   }
 
+  function send(guild, from, message) {
+    client.dispatch('message', {
+      'content': message,
+      'guild': {'id': guild},
+      'member': {'user': {'id': from}},
+      'reply': function(response) {
+        client.guilds.get(guild).defaultChannel.send('<@' + from + '>' + response);
+      },
+    });
+  }
+
+  function getMessage() {
+    assert.equal(messages.length, 1);
+    let result = messages[0];
+    messages = [];
+    return result;
+  }
+
+  function getMessages() {
+    let result = messages;
+    messages = [];
+    return result;
+  }
+
   describe('create()', function() {
     it('should connect to discord', function(done) {
       let config = {token: 'foobar'};
@@ -83,21 +106,15 @@ describe('bot', function() {
       });
     });
 
-    it('should subscribe to known games', function(done) {
+    it('should subscribe to known games', function() {
       let config = MockConfig();
       Bot.create(config, {
         'Discord': {'Client': MockDiscordClient},
         save
       });
-      client.dispatch('message', {
-        'content': '<@1> subscribe Sample Game',
-        'guild': {'id': '1'},
-        'member': {'user': {'id': '2'} },
-        'reply': function(response) {
-          assert.equal(config.guilds['1'].games['Sample game'].users['2'], true);
-          done();
-        },
-      });
+      send('1', '2', '<@1> subscribe Sample Game');
+      assert.equal(getMessage().content.substring(0, 4), '<@2>');
+      assert.equal(config.guilds['1'].games['Sample game'].users['2'], true);
     });
 
     it('should notify subscribed users', function() {
@@ -112,9 +129,7 @@ describe('bot', function() {
       client.dispatch('presenceUpdate',
           {guild, user, 'presence': {'game': null}},
           {guild, user, 'presence': {'game': 'Sample game'}});
-      assert.equal(messages['1'].length, 1);
-      assert.equal(messages['1'][0].substring(0, 4), '<@2>');
-      message = {};
+      assert.equal(getMessage().content.substring(0, 4), '<@2>');
     });
   });
 });

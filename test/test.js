@@ -79,6 +79,7 @@ describe('bot', function() {
       'reply': function(response) {
         client.guilds.get(guild).defaultChannel.send('<@' + from + '>' + response);
       },
+      'channel': client.guilds.get(guild).defaultChannel,
     });
   }
 
@@ -117,6 +118,18 @@ describe('bot', function() {
         'Discord': {'Client': MockDiscordClient},
         save
       });
+    });
+  });
+
+  describe('basic commands', function() {
+    it('should respond to the help command', function() {
+      let config = MockConfig();
+      Bot.create(config, {
+        'Discord': {'Client': MockDiscordClient},
+        save
+      });
+      send('guild1', 'user1', '<@botuser> help');
+      assert.ok(getMessage().content.startsWith('**Commands:**'));
     });
   });
 

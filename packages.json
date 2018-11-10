@@ -1,0 +1,11 @@
+{
+  "name": "gameon",
+  "version": "0.0.0",
+  "description": "A discord bot for notifying about users playing games",
+  "main": "bot.js",
+  "repository": "",
+  "author": "Robert Flack <flackr@gmail.com>",
+  "dependencies": {
+    "discord.js": "~11.4.2"
+  }
+}

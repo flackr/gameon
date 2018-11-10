@@ -63,6 +63,9 @@ client.on('presenceUpdate', (oldMember, newMember) => {
     if (gameCount[newMember.guild.id][game] == 0) {
       let messageStr = '';
       for (let user in configuration.guilds[guild].games[game].users) {
+        // Don't notify the user about themselves.
+        if (user == newMember.user.id)
+          continue;
         if (messageStr)
           messageStr += ', ';
         messageStr += '<@' + user + '>';
@@ -78,7 +81,10 @@ client.on('presenceUpdate', (oldMember, newMember) => {
 });
 
 function save() {
-  fs.writeFile(config_file, JSON.stringify(configuration, null, 2));
+  fs.writeFile(config_file, JSON.stringify(configuration, null, 2), null, (err) => {
+    if (err)
+      console.error('Error saving configuration');
+  });
 }
 
 fs.readFile(config_file, (err, data) => {

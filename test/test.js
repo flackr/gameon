@@ -18,6 +18,9 @@ describe('bot', function() {
             'Sample game': {
               'users': {}
             },
+            'Other game': {
+              'users': {}
+            },
           },
         },
       },
@@ -149,6 +152,34 @@ describe('bot', function() {
       });
       play('guild1', 'user2', 'Sample game');
       assert.equal(messages.length, 0);
+    });
+
+    it('should only notify on the first playing user per game', function() {
+      let config = MockConfig();
+      config.guilds['guild1'].games['Sample game'].users['user2'] = true;
+      config.guilds['guild1'].games['Other game'].users['user2'] = true;
+      Bot.create(config, {
+        'Discord': {'Client': MockDiscordClient},
+        save
+      });
+      // user3 starting to play should notify
+      play('guild1', 'user3', 'Sample game');
+      assert.ok(getMessage().content.startsWith('<@user2>:'));
+
+      // user4 starting to play same game should not notify 
+      play('guild1', 'user4', 'Sample game');
+      assert.equal(messages.length, 0);
+
+      // user5 starting to play another game should notify 
+      play('guild1', 'user5', 'Other game');
+      assert.ok(getMessage().content.startsWith('<@user2>:'));
+
+      // If everyone stops playing, and user6 starts playing we should get
+      // another notification.
+      play('guild1', 'user3', null, 'Sample game');
+      play('guild1', 'user4', null, 'Sample game');
+      play('guild1', 'user6', 'Sample game');
+      assert.ok(getMessage().content.startsWith('<@user2>:'));
     });
   });
 });

@@ -74,8 +74,8 @@
       let game = newMember.presence.game;
       if (oldGame) {
         if (this.gameCount_[oldMember.guild.id]) {
-          if (this.gameCount_[oldMember.guild.id][game])
-            this.gameCount_[oldMember.guild.id][game] = Math.max(this.gameCount_[oldMember.guild.id][game] - 1, 0);
+          if (this.gameCount_[oldMember.guild.id][oldGame])
+            this.gameCount_[oldMember.guild.id][oldGame] = Math.max(this.gameCount_[oldMember.guild.id][oldGame] - 1, 0);
         }
       }
       if (game) {

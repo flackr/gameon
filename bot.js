@@ -76,6 +76,10 @@
     }
 
     onMessage(msg) {
+      if (!msg.guild || !msg.guild.id) {
+        msg.reply('Sorry, I only reply to channel messages for now.');
+        return;
+      }
       if (msg.content.startsWith(this.ping_)) {
         let command = msg.content.substring(this.ping_.length).trim();
         if (command == 'help') {

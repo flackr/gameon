@@ -41,6 +41,15 @@ describe('bot', function() {
     },
   };
 
+  class DMChannel {
+    constructor(user) {
+    }
+
+    send(msg) {
+      messages.push({'guild': null, 'content': msg});
+    }
+  }
+
   let client = undefined;
   class MockDiscordClient {
     constructor() {
@@ -80,14 +89,15 @@ describe('bot', function() {
   }
 
   function send(guild, from, message) {
+    let channel = guild ? client.guilds.get(guild).defaultChannel : new DMChannel(from);
     client.dispatch('message', {
       'content': message,
-      'guild': {'id': guild},
+      'guild': guild ? {'id': guild} : null,
       'member': {'user': {'id': from}},
       'reply': function(response) {
-        client.guilds.get(guild).defaultChannel.send('<@' + from + '>' + response);
+        channel.send('<@' + from + '>' + response);
       },
-      'channel': client.guilds.get(guild).defaultChannel,
+      'channel': channel,
     });
   }
 
@@ -172,6 +182,13 @@ describe('bot', function() {
       });
       send('guild1', 'user1', '<@botuser> help');
       assert.ok(getMessage().content.startsWith('**Commands:**'));
+    });
+  });
+
+  describe('direct messages', function() {
+    it('doesn\'t crash when direct messaged with a guild command', function() {
+      Bot.create(MockConfig(), MOCK_HOOKS);
+      assert.equal(subscribe(null, 'user1', 'Sample game'), false);
     });
   });
 

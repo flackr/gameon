@@ -76,11 +76,11 @@
     }
 
     onMessage(msg) {
-      if (!msg.guild || !msg.guild.id) {
-        msg.reply('Sorry, I only reply to channel messages for now.');
-        return;
-      }
       if (msg.content.startsWith(this.ping_)) {
+        if (!msg.guild || !msg.guild.id) {
+          msg.reply('Sorry, I only reply to channel messages for now.');
+          return;
+        }
         let command = msg.content.substring(this.ping_.length).trim();
         if (command == 'help') {
           // Deliberately avoid 'reply' here as it creates an ugly large highlight block.

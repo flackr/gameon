@@ -128,10 +128,7 @@ describe('bot', function() {
     // Parsing the return is made more difficult due to the fancy formatting.
     // Woo for functional testing.
     let game_string = message.substring(preamble.length, message.length);
-    let games = game_string.split(/and|,/);
-    // In the case where we have A, B, and C, we end up with
-    // ['A', ' B', ' ', ' C'], so remove the bad entry.
-    games = games.map(o => o.trim()).filter(o => o.length);
+    let games = game_string.split(/,? and |, /);
     return games;
   }
 
@@ -215,25 +212,19 @@ describe('bot', function() {
     it ('should be able to list subscribed games', function() {
       Bot.create(MockConfig(), MOCK_HOOKS);
 
-      assert.equal(get_subscriptions('guild1', 'user2').length, 0);
+      assert.deepEqual(get_subscriptions('guild1', 'user2'), []);
 
       assert.equal(subscribe('guild1', 'user2', 'Sample game'), 'Sample game');
-      assert.equal(get_subscriptions('guild1', 'user2').length, 1);
-      assert.equal(get_subscriptions('guild1', 'user2')[0], 'Sample game');
+      assert.deepEqual(get_subscriptions('guild1', 'user2'), ['Sample game']);
 
       // Multiple games are listed alphabetically.
       assert.equal(subscribe('guild1', 'user2', 'Other game'), 'Other game');
-      assert.equal(get_subscriptions('guild1', 'user2').length, 2);
-      assert.equal(get_subscriptions('guild1', 'user2')[0], 'Other game');
-      assert.equal(get_subscriptions('guild1', 'user2')[1], 'Sample game');
+      assert.deepEqual(get_subscriptions('guild1', 'user2'), ['Other game', 'Sample game']);
 
       // There is also special formatting for 3 games, so test that too.
       assert.equal(subscribe('guild1', 'user2', 'FUZZY GAME'), 'FUZZY GAME');
-      assert.equal(get_subscriptions('guild1', 'user2').length, 3);
-      assert.equal(get_subscriptions('guild1', 'user2')[0], 'FUZZY GAME');
-      assert.equal(get_subscriptions('guild1', 'user2')[1], 'Other game');
-      assert.equal(get_subscriptions('guild1', 'user2')[2], 'Sample game');
-
+      assert.deepEqual(get_subscriptions('guild1', 'user2'),
+          ['FUZZY GAME', 'Other game', 'Sample game']);
     });
   });
 

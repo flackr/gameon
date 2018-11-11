@@ -101,7 +101,28 @@ describe('bot', function() {
     const preamble = 'Subscribed to ';
     if (!message.startsWith(preamble))
       return false;
+    // There is an exclamation mark at the end; make sure to remove it.
     return message.substring(preamble.length, message.length - 1);
+  }
+
+  // Sends a subscriptions message and returns a list of the games.
+  function get_subscriptions(guild, user) {
+    send(guild, user, '<@botuser> subscriptions');
+    let response = getMessage();
+    assert.ok(response.content.startsWith('<@' + user + '>'));
+    let message = response.content.substring(user.length + 3);
+    if (message.startsWith('You are not'))
+      return [];
+    const preamble = 'You are subscribed to ';
+    assert.ok(message.startsWith(preamble));
+    // Parsing the return is made more difficult due to the fancy formatting.
+    // Woo for functional testing.
+    let game_string = message.substring(preamble.length, message.length);
+    let games = game_string.split(/and|,/);
+    // In the case where we have A, B, and C, we end up with
+    // ['A', ' B', ' ', ' C'], so remove the bad entry.
+    games = games.map(o => o.trim()).filter(o => o.length);
+    return games;
   }
 
   function getMessage() {
@@ -172,6 +193,30 @@ describe('bot', function() {
       Bot.create(MockConfig(), MOCK_HOOKS);
       assert.equal(subscribe('guild1', 'user2', 'SAMPLE GAME'), 'Sample game');
       assert.equal(subscribe('guild1', 'user2', 'fuzzy game'), 'FUZZY GAME');
+    });
+
+    it ('should be able to list subscribed games', function() {
+      Bot.create(MockConfig(), MOCK_HOOKS);
+
+      assert.equal(get_subscriptions('guild1', 'user2').length, 0);
+
+      assert.equal(subscribe('guild1', 'user2', 'Sample game'), 'Sample game');
+      assert.equal(get_subscriptions('guild1', 'user2').length, 1);
+      assert.equal(get_subscriptions('guild1', 'user2')[0], 'Sample game');
+
+      // Multiple games are listed alphabetically.
+      assert.equal(subscribe('guild1', 'user2', 'Other game'), 'Other game');
+      assert.equal(get_subscriptions('guild1', 'user2').length, 2);
+      assert.equal(get_subscriptions('guild1', 'user2')[0], 'Other game');
+      assert.equal(get_subscriptions('guild1', 'user2')[1], 'Sample game');
+
+      // There is also special formatting for 3 games, so test that too.
+      assert.equal(subscribe('guild1', 'user2', 'FUZZY GAME'), 'FUZZY GAME');
+      assert.equal(get_subscriptions('guild1', 'user2').length, 3);
+      assert.equal(get_subscriptions('guild1', 'user2')[0], 'FUZZY GAME');
+      assert.equal(get_subscriptions('guild1', 'user2')[1], 'Other game');
+      assert.equal(get_subscriptions('guild1', 'user2')[2], 'Sample game');
+
     });
   });
 

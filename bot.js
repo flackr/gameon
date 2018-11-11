@@ -41,12 +41,49 @@
       return closest;
     }
 
+    getSubscriptionListString(guild_id, user_id) {
+      // Find all the games that reference this user on this guild.
+      this.configuration_.guilds[guild_id] = this.configuration_.guilds[guild_id] || {"games": {}};
+      let guild_games = this.configuration_.guilds[guild_id].games
+      let games = []
+      for (let game_name in guild_games) {
+        let game = guild_games[game_name];
+        if (game.users && game.users[user_id]) {
+          games.push(game_name);
+        }
+      }
+
+      if (!games.length)
+        return 'You are not subscribed to any games.'
+
+      // Sort alphabetically for easier reading.
+      games.sort();
+
+      // Format the return string fancy like. Comma-separated with an 'and' for
+      // the final component, but skip the comma when there are only two items.
+      let game_string = '';
+      for (let i = 0; i < games.length; i++) {
+        if (i != 0) {
+          if (games.length > 2 || i != games.length - 1)
+            game_string += ',';
+          game_string += ' ';
+        }
+        if (i > 0 && i == games.length - 1)
+          game_string += 'and ';
+        game_string += games[i];
+      }
+      return 'You are subscribed to ' + game_string;
+    }
+
     onMessage(msg) {
       if (msg.content.startsWith(this.ping_)) {
         let command = msg.content.substring(this.ping_.length).trim();
         if (command == 'help') {
           // Deliberately avoid 'reply' here as it creates an ugly large highlight block.
           msg.channel.send(COMMANDS_LIST);
+          return;
+        } else if (command == 'subscriptions') {
+          msg.reply(this.getSubscriptionListString(msg.guild.id, msg.member.user.id));
           return;
         }
 
